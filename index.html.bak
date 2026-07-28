@@ -59,7 +59,7 @@
             </p>
         </div>
 
-        <!-- 📊 Section 2: Dashboard & App Main -->
+        <!-- 📊 Section 2: Dashboard & App Main (เมื่อ Login แล้ว) -->
         <div id="app_section" class="hidden space-y-6">
 
             <!-- 📈 Dashboard Overview Cards -->
@@ -120,6 +120,7 @@
                         <span id="job_count_tag" class="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-medium">0 รายการ</span>
                     </div>
 
+                    <!-- รายการการ์ดงานซ่อม -->
                     <div id="repair_list" class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
                         <p class="text-center text-slate-400 text-xs py-10">กำลังโหลดข้อมูลงานซ่อม...</p>
                     </div>
@@ -130,22 +131,25 @@
 
     </main>
 
+    <!-- 📜 Firebase Config & Script -->
     <script>
+        // ⚠️ ใส่ Firebase Config จริงของคุณตรงนี้
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+  apiKey: "AIzaSyCZE5VddalQi8ME7vSLDPZjEABno-3ZH5Q",
+  authDomain: "smart-repair-app-feff0.firebaseapp.com",
+  projectId: "smart-repair-app-feff0",
+  storageBucket: "smart-repair-app-feff0.firebasestorage.app",
+  messagingSenderId: "752753802805",
+  appId: "1:752753802805:web:a213e8f39e6e5723563b7c",
+  measurementId: "G-CD7NPK1F85"
+};
 
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
         let isRegisterMode = false;
-        let unsubscribeRepairs = null;
+        let unsubscribeRepairs = null; // Unsubscribe listener เมื่อ Logout
 
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
@@ -199,6 +203,7 @@
 
         function logout() { auth.signOut(); }
 
+        // บันทึกข้อมูลงานซ่อม
         async function saveRepairData() {
             const user = auth.currentUser;
             if (!user) return;
@@ -223,6 +228,7 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
+                // ล้างฟอร์ม
                 document.getElementById('txt_name').value = '';
                 document.getElementById('txt_phone').value = '';
                 document.getElementById('txt_model').value = '';
@@ -234,30 +240,19 @@
             }
         }
 
-        function setText(id, text) {
-            const el = document.getElementById(id);
-            if (el) el.innerText = text;
-        }
-
+        // ดึงข้อมูล Realtime + อัปเดต Dashboard
         function loadRepairsRealtime(shopId) {
             unsubscribeRepairs = db.collection('repairs')
                 .where('shopId', '==', shopId)
                 .onSnapshot(snapshot => {
                     const listContainer = document.getElementById('repair_list');
-                    if (!listContainer) return;
+                    listContainer.innerHTML = '';
+
+                    let total = 0, pending = 0, done = 0, totalIncome = 0;
 
                     if (snapshot.empty) {
                         listContainer.innerHTML = `<p class="text-center text-slate-400 text-xs py-10">ยังไม่มีรายการงานซ่อมในระบบ</p>`;
-                        setText('stat_total', '0');
-                        setText('stat_pending', '0');
-                        setText('stat_done', '0');
-                        setText('stat_income', '0 ฿');
-                        setText('job_count_tag', '0 รายการ');
-                        return;
                     }
-
-                    let total = 0, pending = 0, done = 0, totalIncome = 0;
-                    let htmlBuffer = '';
 
                     snapshot.docs.forEach(doc => {
                         const data = doc.data();
@@ -271,13 +266,14 @@
                         }
                         totalIncome += (Number(data.price) || 0);
 
+                        // Badge สีตามสถานะ
                         let statusColor = 'bg-amber-100 text-amber-800 border-amber-300';
                         if (data.status === 'กำลังซ่อม') statusColor = 'bg-blue-100 text-blue-800 border-blue-300';
                         if (data.status === 'รออะไหล่') statusColor = 'bg-purple-100 text-purple-800 border-purple-300';
                         if (data.status === 'ซ่อมเสร็จแล้ว') statusColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
                         if (data.status === 'ส่งมอบแล้ว') statusColor = 'bg-slate-100 text-slate-600 border-slate-300';
 
-                        htmlBuffer += `
+                        const cardHtml = `
                             <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
                                 <div class="flex justify-between items-start">
                                     <div>
@@ -304,18 +300,19 @@
                                 </div>
                             </div>
                         `;
+                        listContainer.innerHTML += cardHtml;
                     });
 
-                    listContainer.innerHTML = htmlBuffer;
-
-                    setText('stat_total', total);
-                    setText('stat_pending', pending);
-                    setText('stat_done', done);
-                    setText('stat_income', totalIncome.toLocaleString() + ' ฿');
-                    setText('job_count_tag', total + ' รายการ');
+                    // อัปเดตตัวเลขบน Dashboard
+                    document.getElementById('stat_total').innerText = total;
+                    document.getElementById('stat_pending').innerText = pending;
+                    document.getElementById('stat_done').innerText = done;
+                    document.getElementById('stat_income').innerText = totalIncome.toLocaleString() + ' ฿';
+                    document.getElementById('job_count_tag').innerText = total + ' รายการ';
                 });
         }
 
+        // อัปเดตสถานะงานซ่อม
         async function updateStatus(docId, newStatus) {
             try {
                 await db.collection('repairs').doc(docId).update({ status: newStatus });
