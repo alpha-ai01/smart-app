@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartRepair - ระบบจัดการงานซ่อม</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK (v9 / Compatibility Mode) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans p-4">
+
+    <div class="max-w-md mx-auto space-y-4">
+
+        <!-- 🔹 Header Bar -->
+        <header class="bg-slate-900 text-white p-4 rounded-2xl shadow-lg flex justify-between items-center">
+            <div>
+                <h1 class="text-lg font-bold">🛠️ SmartRepair</h1>
+                <p id="shop_name_display" class="text-xs text-slate-400">ยังไม่ได้เข้าสู่ระบบ</p>
+            </div>
+            <button id="btn_logout" onclick="logout()" class="hidden bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-xl border border-red-500/30">
+                ออกจากระบบ
+            </button>
+        </header>
+
+        <!-- 🔐 Section 1: หน้า ล็อกอิน / สมัครสมาชิก (แสดงเมื่อยังไม่ Login) -->
+        <div id="auth_section" class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 space-y-3">
+            <h2 id="auth_title" class="text-md font-bold text-slate-700 border-b pb-2">🔑 เข้าสู่ระบบร้านซ่อม</h2>
+
+            <div id="shop_field" class="hidden">
+                <label class="block text-xs font-medium text-slate-500 mb-1">ชื่อร้านซ่อม</label>
+                <input type="text" id="auth_shop_name" placeholder="เช่น ช่างเอก ไอที" class="w-full px-3 py-2 border rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1">อีเมล</label>
+                <input type="email" id="auth_email" placeholder="example@email.com" class="w-full px-3 py-2 border rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-500 mb-1">รหัสผ่าน</label>
+                <input type="password" id="auth_password" placeholder="••••••••" class="w-full px-3 py-2 border rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <button onclick="handleAuth()" id="btn_auth_submit" class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-sm shadow-sm hover:bg-blue-700">
+                เข้าสู่ระบบ
+            </button>
+
+            <p class="text-xs text-center text-slate-500 mt-2">
+                <span id="auth_toggle_text">ยังไม่มีบัญชีร้านค้า?</span>
+                <button onclick="toggleAuthMode()" class="text-blue-600 font-semibold underline ml-1">
+                    <span id="auth_toggle_btn">สมัครสมาชิก</span>
+                </button>
+            </p>
+        </div>
+
+        <!-- 📝 Section 2: หน้าจัดการงานซ่อม (แสดงเมื่อ Login แล้วเท่านั้น) -->
+        <div id="app_section" class="hidden space-y-4">
+            
+            <!-- 💳 บันทึกงานซ่อมใหม่ -->
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 space-y-3">
+                <h2 class="text-md font-semibold text-slate-700 border-b pb-2">📝 บันทึกงานซ่อมใหม่</h2>
+
+                <input type="text" id="txt_name" placeholder="ชื่อลูกค้า" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
+                <input type="tel" id="txt_phone" placeholder="เบอร์โทรศัพท์" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
+                <input type="text" id="txt_model" placeholder="รุ่นโทรศัพท์ / IMEI" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
+                <input type="text" id="txt_issue" placeholder="อาการเสีย" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
+                <input type="number" id="txt_price" placeholder="ราคาประเมิน (บาท)" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
+
+                <button onclick="saveRepairData()" class="w-full bg-emerald-600 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-emerald-700">
+                    💾 บันทึกข้อมูลงานซ่อม
+                </button>
+            </div>
+
+            <!-- 🔍 ค้นหางานซ่อม -->
+            <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 space-y-3">
+                <h2 class="text-md font-semibold text-slate-700 border-b pb-2">🔍 ค้นหางานซ่อมในร้าน</h2>
+                <div class="flex gap-2">
+                    <input type="tel" id="txt_search" placeholder="กรอกเบอร์โทรลูกค้า..." class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
+                    <button onclick="searchRepairData()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-semibold">ค้นหา</button>
+                </div>
+
+                <div id="search_result" class="bg-slate-50 p-3 rounded-xl border text-xs text-slate-600 space-y-1 hidden">
+                    <p><strong>👤 ชื่อ:</strong> <span id="res_name">-</span></p>
+                    <p><strong>📱 รุ่น:</strong> <span id="res_model">-</span></p>
+                    <p><strong>🛠️ อาการ:</strong> <span id="res_issue">-</span></p>
+                    <p><strong>💵 ราคา:</strong> <span id="res_price">-</span></p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- 📜 Script จัดการระบบหลังบ้าน Firebase -->
+    <script>
+        // ⚠️ นำค่า Config ที่ได้จาก Firebase Console มาวางตรงนี้
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let isRegisterMode = false;
+
+        // สลับโหมด Login / Register
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('shop_field').classList.toggle('hidden', !isRegisterMode);
+            document.getElementById('auth_title').innerText = isRegisterMode ? '📝 สมัครสมาชิกร้านค้าใหม่' : '🔑 เข้าสู่ระบบร้านซ่อม';
+            document.getElementById('btn_auth_submit').innerText = isRegisterMode ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ';
+            document.getElementById('auth_toggle_text').innerText = isRegisterMode ? 'มีบัญชีอยู่แล้ว?' : 'ยังไม่มีบัญชีร้านค้า?';
+            document.getElementById('auth_toggle_btn').innerText = isRegisterMode ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก';
+        }
+
+        // จัดการ Login / Register
+        async function handleAuth() {
+            const email = document.getElementById('auth_email').value.trim();
+            const password = document.getElementById('auth_password').value.trim();
+            const shopName = document.getElementById('auth_shop_name').value.trim();
+
+            if (!email || !password) return alert('โปรดกรอกอีเมลและรหัสผ่าน');
+
+            try {
+                if (isRegisterMode) {
+                    if (!shopName) return alert('โปรดกรอกชื่อร้านซ่อม');
+                    const res = await auth.createUserWithEmailAndPassword(email, password);
+                    // บันทึกชื่อร้านลง Firestore
+                    await db.collection('shops').doc(res.user.uid).set({ shopName: shopName, email: email });
+                    alert('สมัครสมาชิกสำเร็จ!');
+                } else {
+                    await auth.signInWithEmailAndPassword(email, password);
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            }
+        }
+
+        // ตรวจสอบสถานะการ Login อัตโนมัติ
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                document.getElementById('auth_section').classList.add('hidden');
+                document.getElementById('app_section').classList.remove('hidden');
+                document.getElementById('btn_logout').classList.remove('hidden');
+
+                // ดึงชื่อร้านค้า
+                const shopDoc = await db.collection('shops').doc(user.uid).get();
+                if (shopDoc.exists) {
+                    document.getElementById('shop_name_display').innerText = '🏪 ร้าน: ' + shopDoc.data().shopName;
+                }
+            } else {
+                document.getElementById('auth_section').classList.remove('hidden');
+                document.getElementById('app_section').classList.add('hidden');
+                document.getElementById('btn_logout').classList.add('hidden');
+                document.getElementById('shop_name_display').innerText = 'ยังไม่ได้เข้าสู่ระบบ';
+            }
+        });
+
+        function logout() { auth.signOut(); }
+
+        // บันทึกข้อมูลงานซ่อม (แยกตาม User ID)
+        async function saveRepairData() {
+            const user = auth.currentUser;
+            if (!user) return alert('โปรดเข้าสู่ระบบก่อน');
+
+            const phone = document.getElementById('txt_phone').value.trim();
+            if (!phone) return alert('กรุณากรอกเบอร์โทรศัพท์ลูกค้า');
+
+            await db.collection('repairs').add({
+                shopId: user.uid, // ผูกกับร้านค้านี้เท่านั้น
+                name: document.getElementById('txt_name').value.trim(),
+                phone: phone,
+                model: document.getElementById('txt_model').value.trim(),
+                issue: document.getElementById('txt_issue').value.trim(),
+                price: document.getElementById('txt_price').value.trim(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            alert('บันทึกงานซ่อมสำเร็จ!');
+        }
+
+        // ค้นหางานซ่อมเฉพาะของร้านตัวเอง
+        async function searchRepairData() {
+            const user = auth.currentUser;
+            const searchPhone = document.getElementById('txt_search').value.trim();
+            if (!searchPhone) return alert('กรอกเบอร์โทรเพื่อค้นหา');
+
+            const snapshot = await db.collection('repairs')
+                .where('shopId', '==', user.uid)
+                .where('phone', '==', searchPhone)
+                .get();
+
+            if (snapshot.empty) {
+                alert('ไม่พบข้อมูลงานซ่อมในร้านของคุณ');
+                document.getElementById('search_result').classList.add('hidden');
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                document.getElementById('res_name').innerText = data.name || '-';
+                document.getElementById('res_model').innerText = data.model || '-';
+                document.getElementById('res_issue').innerText = data.issue || '-';
+                document.getElementById('res_price').innerText = data.price ? `${data.price} บาท` : '-';
+                document.getElementById('search_result').classList.remove('hidden');
+            });
+        }
+    </script>
+</body>
+</html>
