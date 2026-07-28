@@ -1,0 +1,10 @@
+# ไฟล์ขยะและไฟล์ระบบ
+node_modules/
+build/
+.dart_tool/
+.idea/
+.vscode/
+
+# คีย์ความลับ
+*.env
+google-services.json
