@@ -3,326 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartRepair - ระบบจัดการงานซ่อม</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDK (v9 Compatibility) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <title>Smart-Fix-Guide | แหล่งความรู้และซ่อมสมาร์ทโฟน</title>
+    <meta name="description" content="คู่มือแก้ปัญหา การดูแลสมาร์ทโฟน iOS และ Android และการเปลี่ยนอะไหล่พื้นฐาน">
+    <link rel="stylesheet" href="css/main.css">
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800 font-sans pb-10">
-
-    <!-- 🔹 Header Bar -->
-    <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+<body>
+    <header>
+        <div class="container nav-content">
+            <a href="#" onclick="closeReader()" class="logo">Smart-Fix-Guide</a>
             <div>
-                <h1 class="text-lg font-bold">🛠️ SmartRepair</h1>
-                <p id="shop_name_display" class="text-xs text-slate-400">ยังไม่ได้เข้าสู่ระบบ</p>
+                <button onclick="setLang('th')" style="border:none; background:none; cursor:pointer;">TH</button> | 
+                <button onclick="setLang('en')" style="border:none; background:none; cursor:pointer;">EN</button>
             </div>
-            <button id="btn_logout" onclick="logout()" class="hidden bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded-xl border border-red-500/30">
-                ออกจากระบบ
-            </button>
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto p-4 space-y-6">
+    <!-- LANDING VIEW -->
+    <div id="landing-view">
+        <section class="hero">
+            <h1 data-i18n="heroTitle">คู่มือแก้ปัญหา & ซ่อมสมาร์ทโฟน</h1>
+            <p data-i18n="heroSub" style="margin-top: 10px;">เทคนิคการใช้งานและการดูแลมือถือ iOS และ Android</p>
+            <div class="search-bar">
+                <input type="text" data-i18n-placeholder="searchPlace">
+                <button>🔍</button>
+            </div>
+        </section>
+        
+        <div class="container">
+            <!-- Ad Slot A -->
+            <div class="ad-slot">[ ADS: Top Leaderboard 728x90 ]</div>
 
-        <!-- 🔐 Section 1: ล็อกอิน / สมัครสมาชิก -->
-        <div id="auth_section" class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-md border border-slate-200 space-y-4">
-            <h2 id="auth_title" class="text-lg font-bold text-slate-700 border-b pb-2">🔑 เข้าสู่ระบบร้านซ่อม</h2>
-
-            <div id="shop_field" class="hidden">
-                <label class="block text-xs font-medium text-slate-500 mb-1">ชื่อร้านซ่อม</label>
-                <input type="text" id="auth_shop_name" placeholder="เช่น ช่างเอก ไอที" class="w-full px-3 py-2 border rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterCategory('all')" data-i18n="navAll">ทั้งหมด</button>
+                <button class="filter-btn" onclick="filterCategory('ios')" data-i18n="navIOS">🍎 iOS</button>
+                <button class="filter-btn" onclick="filterCategory('android')" data-i18n="navAndroid">🤖 Android</button>
+                <button class="filter-btn" onclick="filterCategory('diy')" data-i18n="navDIY">🔋 ฮาร์ดแวร์ & อะไหล่</button>
             </div>
 
-            <div>
-                <label class="block text-xs font-medium text-slate-500 mb-1">อีเมล</label>
-                <input type="email" id="auth_email" placeholder="example@email.com" class="w-full px-3 py-2 border rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
+            <div class="grid" id="article-grid">
+                <!-- Articles will be rendered here via JS -->
             </div>
-
-            <div>
-                <label class="block text-xs font-medium text-slate-500 mb-1">รหัสผ่าน</label>
-                <input type="password" id="auth_password" placeholder="••••••••" class="w-full px-3 py-2 border rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <button onclick="handleAuth()" id="btn_auth_submit" class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-sm shadow-sm hover:bg-blue-700">
-                เข้าสู่ระบบ
-            </button>
-
-            <p class="text-xs text-center text-slate-500 mt-2">
-                <span id="auth_toggle_text">ยังไม่มีบัญชีร้านค้า?</span>
-                <button onclick="toggleAuthMode()" class="text-blue-600 font-semibold underline ml-1">
-                    <span id="auth_toggle_btn">สมัครสมาชิก</span>
-                </button>
-            </p>
         </div>
+    </div>
 
-        <!-- 📊 Section 2: Dashboard & App Main -->
-        <div id="app_section" class="hidden space-y-6">
-
-            <!-- 📈 Dashboard Overview Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
-                    <p class="text-xs text-slate-500 font-medium">งานทั้งหมด</p>
-                    <p id="stat_total" class="text-2xl font-bold text-slate-800">0</p>
-                </div>
-                <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 shadow-sm text-center">
-                    <p class="text-xs text-amber-700 font-medium">กำลังดำเนินการ</p>
-                    <p id="stat_pending" class="text-2xl font-bold text-amber-800">0</p>
-                </div>
-                <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 shadow-sm text-center">
-                    <p class="text-xs text-emerald-700 font-medium">ซ่อมเสร็จแล้ว</p>
-                    <p id="stat_done" class="text-2xl font-bold text-emerald-800">0</p>
-                </div>
-                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-200 shadow-sm text-center">
-                    <p class="text-xs text-blue-700 font-medium">ประเมินรายได้รวม</p>
-                    <p id="stat_income" class="text-xl font-bold text-blue-800">0 ฿</p>
+    <!-- READER VIEW -->
+    <div id="reader-view">
+        <div class="container">
+            <div class="reader-header">
+                <button onclick="closeReader()" style="border:none; background:none; color:var(--primary); cursor:pointer; font-size:1.1rem; margin-bottom:20px;" data-i18n="backBtn">← กลับหน้าหลัก</button>
+                <h1 id="reader-title" style="margin-bottom: 20px; font-size: 2rem;">Title</h1>
+            </div>
+            
+            <!-- Ad Slot C -->
+            <div class="ad-slot" style="max-width:800px; margin: 0 auto 20px;">[ ADS: Before Article ]</div>
+            
+            <img id="reader-cover" class="reader-cover" src="" alt="Cover Image">
+            <div id="reader-body" class="reader-content">
+                <!-- Content here -->
+            </div>
+            
+            <!-- Affiliate / Shop CTA -->
+            <div class="reader-content">
+                <div class="shop-cta" id="reader-shop">
+                    <div>
+                        <h3 style="color:var(--accent);">แนะนำสำหรับคุณ</h3>
+                        <p>อะไหล่มาตรฐานและอุปกรณ์สำหรับบทความนี้</p>
+                    </div>
+                    <a href="#" id="shop-link" class="btn-primary" target="_blank" data-i18n="shopBtn">🛒 สั่งซื้ออะไหล่มาตรฐาน</a>
                 </div>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- 📝 ฟอร์มรับงานซ่อมใหม่ -->
-                <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 space-y-3 h-fit">
-                    <h2 class="text-md font-semibold text-slate-700 border-b pb-2">➕ เปิดใบรับซ่อมใหม่</h2>
-
-                    <div>
-                        <label class="text-xs text-slate-500">ชื่อลูกค้า</label>
-                        <input type="text" id="txt_name" placeholder="คุณสมชาย" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-500">เบอร์โทรศัพท์</label>
-                        <input type="tel" id="txt_phone" placeholder="0812345678" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-500">รุ่นมือถือ / Device</label>
-                        <input type="text" id="txt_model" placeholder="iPhone 13 / Samsung S22" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-500">อาการเสีย</label>
-                        <input type="text" id="txt_issue" placeholder="หน้าจอแตก / แบตเสื่อม" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-500">ราคาประเมิน (บาท)</label>
-                        <input type="number" id="txt_price" placeholder="1500" class="w-full px-3 py-2 border rounded-xl text-sm outline-none">
-                    </div>
-
-                    <button onclick="saveRepairData()" class="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-slate-800 transition">
-                        💾 บันทึกรับเครื่องซ่อม
-                    </button>
-                </div>
-
-                <!-- 📋 รายการงานซ่อม (Realtime List) -->
-                <div class="md:col-span-2 bg-white p-5 rounded-2xl shadow-md border border-slate-200 space-y-4">
-                    <div class="flex justify-between items-center border-b pb-2">
-                        <h2 class="text-md font-semibold text-slate-700">📋 รายการงานซ่อมในร้าน</h2>
-                        <span id="job_count_tag" class="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-medium">0 รายการ</span>
-                    </div>
-
-                    <div id="repair_list" class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-                        <p class="text-center text-slate-400 text-xs py-10">กำลังโหลดข้อมูลงานซ่อม...</p>
-                    </div>
-                </div>
-            </div>
-
         </div>
+    </div>
 
-    </main>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        let isRegisterMode = false;
-        let unsubscribeRepairs = null;
-
-        function toggleAuthMode() {
-            isRegisterMode = !isRegisterMode;
-            document.getElementById('shop_field').classList.toggle('hidden', !isRegisterMode);
-            document.getElementById('auth_title').innerText = isRegisterMode ? '📝 สมัครสมาชิกร้านค้าใหม่' : '🔑 เข้าสู่ระบบร้านซ่อม';
-            document.getElementById('btn_auth_submit').innerText = isRegisterMode ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ';
-            document.getElementById('auth_toggle_text').innerText = isRegisterMode ? 'มีบัญชีอยู่แล้ว?' : 'ยังไม่มีบัญชีร้านค้า?';
-            document.getElementById('auth_toggle_btn').innerText = isRegisterMode ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก';
-        }
-
-        async function handleAuth() {
-            const email = document.getElementById('auth_email').value.trim();
-            const password = document.getElementById('auth_password').value.trim();
-            const shopName = document.getElementById('auth_shop_name').value.trim();
-
-            if (!email || !password) return alert('กรอกอีเมลและรหัสผ่านให้ครบถ้วน');
-
-            try {
-                if (isRegisterMode) {
-                    if (!shopName) return alert('กรอกชื่อร้านซ่อมด้วยครับ');
-                    const res = await auth.createUserWithEmailAndPassword(email, password);
-                    await db.collection('shops').doc(res.user.uid).set({ shopName: shopName, email: email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                    alert('สมัครสมาชิกสำเร็จ!');
-                } else {
-                    await auth.signInWithEmailAndPassword(email, password);
-                }
-            } catch (err) {
-                alert('ข้อผิดพลาด: ' + err.message);
-            }
-        }
-
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                document.getElementById('auth_section').classList.add('hidden');
-                document.getElementById('app_section').classList.remove('hidden');
-                document.getElementById('btn_logout').classList.remove('hidden');
-
-                const shopDoc = await db.collection('shops').doc(user.uid).get();
-                if (shopDoc.exists) {
-                    document.getElementById('shop_name_display').innerText = '🏪 ' + shopDoc.data().shopName;
-                }
-
-                loadRepairsRealtime(user.uid);
-            } else {
-                document.getElementById('auth_section').classList.remove('hidden');
-                document.getElementById('app_section').classList.add('hidden');
-                document.getElementById('btn_logout').classList.add('hidden');
-                if (unsubscribeRepairs) unsubscribeRepairs();
-            }
-        });
-
-        function logout() { auth.signOut(); }
-
-        async function saveRepairData() {
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const name = document.getElementById('txt_name').value.trim();
-            const phone = document.getElementById('txt_phone').value.trim();
-            const model = document.getElementById('txt_model').value.trim();
-            const issue = document.getElementById('txt_issue').value.trim();
-            const price = document.getElementById('txt_price').value.trim();
-
-            if (!phone || !model) return alert('โปรดกรอกอย่างน้อย เบอร์โทร และ รุ่นมือถือ');
-
-            try {
-                await db.collection('repairs').add({
-                    shopId: user.uid,
-                    name: name || 'ลูกค้าทั่วไป',
-                    phone: phone,
-                    model: model,
-                    issue: issue || '-',
-                    price: Number(price) || 0,
-                    status: 'รับเครื่องแล้ว',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                document.getElementById('txt_name').value = '';
-                document.getElementById('txt_phone').value = '';
-                document.getElementById('txt_model').value = '';
-                document.getElementById('txt_issue').value = '';
-                document.getElementById('txt_price').value = '';
-
-            } catch (err) {
-                alert('บันทึกไม่สำเร็จ: ' + err.message);
-            }
-        }
-
-        function setText(id, text) {
-            const el = document.getElementById(id);
-            if (el) el.innerText = text;
-        }
-
-        function loadRepairsRealtime(shopId) {
-            unsubscribeRepairs = db.collection('repairs')
-                .where('shopId', '==', shopId)
-                .onSnapshot(snapshot => {
-                    const listContainer = document.getElementById('repair_list');
-                    if (!listContainer) return;
-
-                    if (snapshot.empty) {
-                        listContainer.innerHTML = `<p class="text-center text-slate-400 text-xs py-10">ยังไม่มีรายการงานซ่อมในระบบ</p>`;
-                        setText('stat_total', '0');
-                        setText('stat_pending', '0');
-                        setText('stat_done', '0');
-                        setText('stat_income', '0 ฿');
-                        setText('job_count_tag', '0 รายการ');
-                        return;
-                    }
-
-                    let total = 0, pending = 0, done = 0, totalIncome = 0;
-                    let htmlBuffer = '';
-
-                    snapshot.docs.forEach(doc => {
-                        const data = doc.data();
-                        const id = doc.id;
-
-                        total++;
-                        if (data.status === 'ส่งมอบแล้ว' || data.status === 'ซ่อมเสร็จแล้ว') {
-                            done++;
-                        } else {
-                            pending++;
-                        }
-                        totalIncome += (Number(data.price) || 0);
-
-                        let statusColor = 'bg-amber-100 text-amber-800 border-amber-300';
-                        if (data.status === 'กำลังซ่อม') statusColor = 'bg-blue-100 text-blue-800 border-blue-300';
-                        if (data.status === 'รออะไหล่') statusColor = 'bg-purple-100 text-purple-800 border-purple-300';
-                        if (data.status === 'ซ่อมเสร็จแล้ว') statusColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
-                        if (data.status === 'ส่งมอบแล้ว') statusColor = 'bg-slate-100 text-slate-600 border-slate-300';
-
-                        htmlBuffer += `
-                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <h3 class="font-bold text-slate-800 text-sm">${data.model}</h3>
-                                        <p class="text-xs text-slate-500">👤 ${data.name} | 📞 ${data.phone}</p>
-                                    </div>
-                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-md border ${statusColor}">
-                                        ${data.status}
-                                    </span>
-                                </div>
-                                <div class="text-xs text-slate-600">
-                                    <p>🛠️ <strong>อาการ:</strong> ${data.issue}</p>
-                                    <p>💵 <strong>ประเมิน:</strong> ${data.price} บาท</p>
-                                </div>
-                                <div class="flex items-center gap-2 pt-1 border-t border-slate-200">
-                                    <label class="text-[10px] text-slate-400 font-medium">เปลี่ยนสถานะ:</label>
-                                    <select onchange="updateStatus('${id}', this.value)" class="text-xs border rounded-lg px-2 py-1 bg-white outline-none">
-                                        <option value="รับเครื่องแล้ว" ${data.status === 'รับเครื่องแล้ว' ? 'selected' : ''}>รับเครื่องแล้ว</option>
-                                        <option value="กำลังซ่อม" ${data.status === 'กำลังซ่อม' ? 'selected' : ''}>กำลังซ่อม</option>
-                                        <option value="รออะไหล่" ${data.status === 'รออะไหล่' ? 'selected' : ''}>รออะไหล่</option>
-                                        <option value="ซ่อมเสร็จแล้ว" ${data.status === 'ซ่อมเสร็จแล้ว' ? 'selected' : ''}>ซ่อมเสร็จแล้ว</option>
-                                        <option value="ส่งมอบแล้ว" ${data.status === 'ส่งมอบแล้ว' ? 'selected' : ''}>ส่งมอบแล้ว</option>
-                                    </select>
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    listContainer.innerHTML = htmlBuffer;
-
-                    setText('stat_total', total);
-                    setText('stat_pending', pending);
-                    setText('stat_done', done);
-                    setText('stat_income', totalIncome.toLocaleString() + ' ฿');
-                    setText('job_count_tag', total + ' รายการ');
-                });
-        }
-
-        async function updateStatus(docId, newStatus) {
-            try {
-                await db.collection('repairs').doc(docId).update({ status: newStatus });
-            } catch (err) {
-                alert('อัปเดตสถานะไม่สำเร็จ: ' + err.message);
-            }
-        }
-    </script>
+    <script src="js/config.js"></script>
+    <script src="js/posts.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

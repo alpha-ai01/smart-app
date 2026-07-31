@@ -1,0 +1,19 @@
+backend:
+  name: github
+  repo: your-username/smart-fix-guide # <-- คุณสามารถมาแก้ชื่อ Repo ทีหลังได้
+  branch: main
+media_folder: "assets/uploads"
+public_folder: "/assets/uploads"
+collections:
+  - name: "post"
+    label: "Blog Posts"
+    folder: "content/posts"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - {label: "Title", name: "title", widget: "string"}
+      - {label: "Category", name: "category", widget: "select", options: ["ios", "android", "diy"]}
+      - {label: "Excerpt", name: "excerpt", widget: "text"}
+      - {label: "Cover Image", name: "coverImage", widget: "image"}
+      - {label: "Shop Link", name: "shopLink", widget: "string", required: false}
+      - {label: "Body", name: "body", widget: "markdown"}
